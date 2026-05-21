@@ -9,7 +9,7 @@
 |------|------|------|
 | Framework | Next.js 14+ (App Router) | TypeScript 적용 |
 | Styling | Tailwind CSS | 공통·도메인 컴포넌트 UI |
-| Database & Auth | Supabase | **다음 단계에서 연동 예정** |
+| Database & Auth | Supabase | 이메일 로그인, 문서·품목 저장, 공개 게시판 |
 | 배포 | Vercel | 타겟 환경 |
 
 ## 로컬 실행
@@ -175,13 +175,37 @@ npm run download-fonts
 - [x] Serper + LLM 실시간 제품 검색 API
 - [x] USD→KRW 실시간 환율 적용 (외산 제품 가격 원화 환산)
 - [x] 견적서·구매사양서 PDF 출력 전면 교체 (@react-pdf/renderer, 한글 폰트 포함)
-- [ ] Supabase DB·Auth 연동
+- [x] Supabase DB·Auth 연동 (문서 저장, 마이페이지, 공유 게시판)
+
+## Supabase 설정 (최초 1회)
+
+1. [Supabase](https://supabase.com)에서 새 프로젝트를 만듭니다.
+2. 대시보드 **SQL Editor** → **New query** → 루트의 [`supabase-schema.sql`](supabase-schema.sql) 파일 내용을 **전체 복사·붙여넣기** → **Run** 실행합니다.
+3. **Authentication → Providers → Email** 에서 Email 로그인을 활성화합니다. (이메일 확인이 켜져 있으면 가입 후 메일 인증이 필요합니다.)
+4. **Project Settings → API** 에서 **Project URL** 과 **anon public** 키를 복사합니다.
+5. 프로젝트 루트 `.env.local` 에 추가합니다:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbG...
+```
+
+6. `npm run dev` 로 앱을 실행합니다.
+
+### 화면에서 테스트하는 순서
+
+| 단계 | URL | 확인 내용 |
+|------|-----|-----------|
+| 1 | `/signup` | 회원가입 후 로그인 |
+| 2 | `/` | 품목 추가 → 제목·공개 여부 → **견적서 저장하기** |
+| 3 | `/dashboard` | 저장 목록, **불러오기**, 2건 선택 후 **비교하기** |
+| 4 | `/shared` | 공개 문서 검색·**보기** (미리보기·PDF) |
+| 5 | 로그아웃 후 `/` | 저장 버튼 → 로그인 모달 표시 |
 
 ## 다음 단계 로드맵
 
-1. **데이터** — Supabase 테이블 설계 및 `DocumentMaster` CRUD
-2. **인증** — Supabase Auth 로그인·`userId` 연동
-3. **배포** — Vercel 연결 및 환경 변수(SERPER, LLM 키) 설정
+1. **배포** — Vercel 연결 및 환경 변수(SERPER, LLM, Supabase) 설정
+2. **문서 삭제** — 대시보드에서 문서 삭제 API
 
 ## 라이선스
 
