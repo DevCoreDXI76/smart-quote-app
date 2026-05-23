@@ -2,9 +2,11 @@
  * @file types/index.ts
  * @description Smart Quote App 전역 TypeScript 타입 정의
  *
- * 이 파일은 견적서·구매사양서 도메인에서 공통으로 사용하는
- * 데이터 구조(품목, 문서 마스터)를 한곳에서 export 합니다.
- * UI·훅·라이브러리 레이어는 이 타입만 참조하여 결합도를 낮춥니다.
+ * [보안 가이드 — UserRole / AppUserProfile]
+ * - role 값은 Supabase public.users.role 컬럼과 1:1 동기화됩니다.
+ * - 프론트엔드에서 role을 직접 UPDATE하지 마세요. admin_set_user_role RPC 또는
+ *   서버 API Route(/api/admin/*)만 사용합니다.
+ * - isAdmin 판별은 UI·미들웨어 보조용이며, 실제 권한은 DB RLS·RPC가 강제합니다.
  */
 
 export type {
@@ -15,6 +17,21 @@ export type {
   AiProductSearchRequest,
   AiProductSearchResult,
 } from "./aiSearch";
+
+/** Supabase public.users.role — DB check 제약과 동일 */
+export type UserRole = "user" | "admin";
+
+/**
+ * 앱 프로필 (auth.users + public.users)
+ * role 변경은 admin RPC / 서버 API만 허용
+ */
+export interface AppUserProfile {
+  id: string;
+  email: string;
+  displayName: string | null;
+  role: UserRole;
+  createdAt: string;
+}
 
 /**
  * 견적·구매사양서 품목 1행

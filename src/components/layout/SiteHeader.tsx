@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
  * 앱 공통 헤더 (홈, 마이페이지, 공유 게시판, 로그인/로그아웃)
  */
 export function SiteHeader() {
-  const { user, isLoading, signOut, isConfigured } = useAuth();
+  const { user, isLoading, isAdmin, signOut, isConfigured } = useAuth();
 
   return (
     <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
@@ -45,6 +45,14 @@ export function SiteHeader() {
             >
               공유 게시판
             </Link>
+            {isAdmin ? (
+              <Link
+                href="/admin"
+                className="font-medium text-amber-700 hover:text-amber-900 dark:text-amber-400"
+              >
+                관리자
+              </Link>
+            ) : null}
           </nav>
         </div>
 

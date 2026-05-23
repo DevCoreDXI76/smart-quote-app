@@ -19,6 +19,7 @@ create table if not exists public.users (
   id uuid primary key references auth.users (id) on delete cascade,
   email text not null,
   display_name text,
+  role text not null default 'user' check (role in ('user', 'admin')),
   created_at timestamptz not null default now()
 );
 
@@ -297,6 +298,225 @@ $$;
 grant execute on function public.save_document_with_products(text, boolean, jsonb, uuid) to authenticated;
 
 -- -----------------------------------------------------------------------------
+-- 7. 관리자(Admin) 권한 — role, RLS, RPC
+-- -----------------------------------------------------------------------------
+
+/**
+ * is_admin: 현재 JWT 사용자가 admin role인지 (RLS·RPC 공통)
+ */
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.users u
+    where u.id = auth.uid() and u.role = 'admin'
+  );
+$$;
+
+/**
+ * role 자동 승격 방지: 일반 사용자 UPDATE로 role 변경 불가
+ */
+create or replace function public.prevent_role_self_escalation()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.role is distinct from old.role and not public.is_admin() then
+    raise exception '권한이 없습니다. role 변경은 admin_set_user_role RPC를 사용하세요.';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists users_prevent_role_escalation on public.users;
+create trigger users_prevent_role_escalation
+  before update of role on public.users
+  for each row execute function public.prevent_role_self_escalation();
+
+-- Admin: 전체 users SELECT
+drop policy if exists users_select_admin on public.users;
+create policy users_select_admin on public.users
+  for select using (public.is_admin());
+
+-- Admin: documents 전체 SELECT·DELETE
+drop policy if exists documents_select_admin on public.documents;
+create policy documents_select_admin on public.documents
+  for select using (public.is_admin());
+
+drop policy if exists documents_delete_admin on public.documents;
+create policy documents_delete_admin on public.documents
+  for delete using (public.is_admin());
+
+-- Admin: products 전체 DELETE (유해 문서 정리용)
+drop policy if exists products_delete_admin on public.products;
+create policy products_delete_admin on public.products
+  for delete using (public.is_admin());
+
+/**
+ * admin_list_users: 가입 유저 목록 (admin 전용)
+ */
+create or replace function public.admin_list_users()
+returns table (
+  id uuid,
+  email text,
+  display_name text,
+  role text,
+  created_at timestamptz
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    raise exception '관리자 권한이 필요합니다.';
+  end if;
+
+  return query
+  select u.id, u.email, u.display_name, u.role, u.created_at
+  from public.users u
+  order by u.created_at desc;
+end;
+$$;
+
+/**
+ * admin_set_user_role: 유저 role 변경 (admin 전용, 자기 admin 해제 방지)
+ */
+create or replace function public.admin_set_user_role(
+  p_user_id uuid,
+  p_role text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    raise exception '관리자 권한이 필요합니다.';
+  end if;
+
+  if p_role not in ('user', 'admin') then
+    raise exception 'role은 user 또는 admin만 가능합니다.';
+  end if;
+
+  if p_user_id = auth.uid() and p_role = 'user' then
+    raise exception '자신의 admin 권한은 해제할 수 없습니다.';
+  end if;
+
+  update public.users
+  set role = p_role
+  where id = p_user_id;
+
+  if not found then
+    raise exception '사용자를 찾을 수 없습니다.';
+  end if;
+end;
+$$;
+
+/**
+ * admin_document_stats: 문서·유저 통계 (admin 전용)
+ */
+create or replace function public.admin_document_stats()
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_total_documents bigint;
+  v_today_documents bigint;
+  v_total_users bigint;
+begin
+  if not public.is_admin() then
+    raise exception '관리자 권한이 필요합니다.';
+  end if;
+
+  select count(*) into v_total_documents from public.documents;
+  select count(*) into v_today_documents
+  from public.documents
+  where created_at >= date_trunc('day', now() at time zone 'Asia/Seoul');
+  select count(*) into v_total_users from public.users;
+
+  return json_build_object(
+    'total_documents', v_total_documents,
+    'today_documents', v_today_documents,
+    'total_users', v_total_users
+  );
+end;
+$$;
+
+/**
+ * admin_list_documents: 전체 문서 목록 (admin 전용)
+ */
+create or replace function public.admin_list_documents(p_limit integer default 100)
+returns table (
+  id uuid,
+  title text,
+  is_public boolean,
+  created_at timestamptz,
+  user_id uuid,
+  user_email text
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    raise exception '관리자 권한이 필요합니다.';
+  end if;
+
+  return query
+  select
+    d.id,
+    d.title,
+    d.is_public,
+    d.created_at,
+    d.user_id,
+    u.email as user_email
+  from public.documents d
+  join public.users u on u.id = d.user_id
+  order by d.created_at desc
+  limit greatest(1, least(coalesce(p_limit, 100), 500));
+end;
+$$;
+
+/**
+ * admin_delete_document: 문서 삭제 (admin 전용, products cascade)
+ */
+create or replace function public.admin_delete_document(p_document_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    raise exception '관리자 권한이 필요합니다.';
+  end if;
+
+  delete from public.documents where id = p_document_id;
+
+  if not found then
+    raise exception '문서를 찾을 수 없습니다.';
+  end if;
+end;
+$$;
+
+grant execute on function public.admin_list_users() to authenticated;
+grant execute on function public.admin_set_user_role(uuid, text) to authenticated;
+grant execute on function public.admin_document_stats() to authenticated;
+grant execute on function public.admin_list_documents(integer) to authenticated;
+grant execute on function public.admin_delete_document(uuid) to authenticated;
+
+-- -----------------------------------------------------------------------------
 -- 기존 DB 마이그레이션 (이미 스키마를 실행한 경우 SQL Editor에서 1회 실행)
 -- -----------------------------------------------------------------------------
 -- alter table public.products add column if not exists model_name text not null default '';
+-- alter table public.users add column if not exists role text not null default 'user' check (role in ('user', 'admin'));
+-- (위 7번 섹션 전체를 마이그레이션으로 실행)

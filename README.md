@@ -176,6 +176,7 @@ npm run download-fonts
 - [x] USD→KRW 실시간 환율 적용 (외산 제품 가격 원화 환산)
 - [x] 견적서·구매사양서 PDF 출력 전면 교체 (@react-pdf/renderer, 한글 폰트 포함)
 - [x] Supabase DB·Auth 연동 (문서 저장, 마이페이지, 공유 게시판)
+- [x] 관리자 권한·미들웨어·대시보드 (/admin, role, service role API)
 
 ## Supabase 설정 (최초 1회)
 
@@ -192,6 +193,53 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbG...
 
 6. `npm run dev` 로 앱을 실행합니다.
 
+### 관리자(Admin) 설정
+
+관리자 기능(`/admin`, `/api/admin/*`)을 사용하려면 아래를 추가로 설정합니다.
+
+#### 1. DB 마이그레이션 (기존 Supabase 프로젝트)
+
+[`supabase-schema.sql`](supabase-schema.sql) **7번 섹션(관리자 권한)** 을 SQL Editor에서 실행합니다.  
+또는 마이그레이션 주석에 있는 `role` 컬럼 추가 SQL을 1회 실행합니다.
+
+#### 2. `.env.local` 환경 변수
+
+```env
+# 브라우저용 (RLS 적용) — 기존과 동일
+NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbG...
+
+# 서버 전용 — 관리자「강제 탈퇴」API에서만 사용
+# ⚠️ 절대 NEXT_PUBLIC_ 접두사를 붙이지 마세요
+# ⚠️ Git에 커밋하지 마세요 (.gitignore의 .env* 참고)
+SUPABASE_SERVICE_ROLE_KEY=eyJhbG...service_role...
+```
+
+| 변수 | 노출 | 용도 |
+|------|------|------|
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 브라우저 OK | RLS가 적용된 일반 API |
+| `SUPABASE_SERVICE_ROLE_KEY` | **서버만** | `auth.admin.deleteUser` (RLS 우회) |
+
+service role 키는 Supabase **Project Settings → API → service_role** 에서 복사합니다.  
+Vercel 배포 시에도 **Environment Variables**에 동일하게 추가하세요 (Production 권장).
+
+#### 3. 테스트 계정을 admin으로 승격
+
+Supabase SQL Editor에서:
+
+```sql
+UPDATE public.users SET role = 'admin' WHERE email = 'your-test@example.com';
+```
+
+로그아웃 후 재로그인 → 헤더에 **관리자** 링크 표시 → `/admin` 접근.
+
+#### 4. 보안 체크리스트 (협업 시 필수)
+
+- [ ] `SUPABASE_SERVICE_ROLE_KEY`가 `NEXT_PUBLIC_*`로 설정되지 않았는지
+- [ ] service role을 import하는 파일이 `src/app/api/admin/**`·`serviceRoleClient.ts` 뿐인지
+- [ ] 브라우저 DevTools → Network/Sources에서 `service_role` 문자열이 보이지 않는지
+- [ ] role 변경을 프론트에서 `supabase.from('users').update()`로 하지 않는지 (RPC/API만 사용)
+
 ### 화면에서 테스트하는 순서
 
 | 단계 | URL | 확인 내용 |
@@ -201,6 +249,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbG...
 | 3 | `/dashboard` | 저장 목록, **불러오기**, 2건 선택 후 **비교하기** |
 | 4 | `/shared` | 공개 문서 검색·**보기** (미리보기·PDF) |
 | 5 | 로그아웃 후 `/` | 저장 버튼 → 로그인 모달 표시 |
+| 6 | admin 계정 `/admin` | 사용자·문서 관리, role 변경, 강제 탈퇴( service role 설정 시 ) |
 
 ## 다음 단계 로드맵
 
