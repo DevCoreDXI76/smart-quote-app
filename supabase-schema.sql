@@ -44,6 +44,7 @@ create table if not exists public.products (
   id uuid primary key default gen_random_uuid(),
   document_id uuid not null references public.documents (id) on delete cascade,
   product_name text not null default '',
+  model_name text not null default '',
   manufacturer text not null default '',
   detailed_spec text not null default '',
   image_url text not null default '',
@@ -195,6 +196,7 @@ create policy products_delete_own_document on public.products
  * [
  *   {
  *     "product_name": "노트북",
+ *     "model_name": "A3090",
  *     "manufacturer": "LG",
  *     "detailed_spec": "...",
  *     "image_url": "https://...",
@@ -261,6 +263,7 @@ begin
       insert into public.products (
         document_id,
         product_name,
+        model_name,
         manufacturer,
         detailed_spec,
         image_url,
@@ -273,6 +276,7 @@ begin
       values (
         v_doc_id,
         coalesce(v_product->>'product_name', ''),
+        coalesce(v_product->>'model_name', ''),
         coalesce(v_product->>'manufacturer', ''),
         coalesce(v_product->>'detailed_spec', ''),
         coalesce(v_product->>'image_url', ''),
@@ -291,3 +295,8 @@ end;
 $$;
 
 grant execute on function public.save_document_with_products(text, boolean, jsonb, uuid) to authenticated;
+
+-- -----------------------------------------------------------------------------
+-- 기존 DB 마이그레이션 (이미 스키마를 실행한 경우 SQL Editor에서 1회 실행)
+-- -----------------------------------------------------------------------------
+-- alter table public.products add column if not exists model_name text not null default '';

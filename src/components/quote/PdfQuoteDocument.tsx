@@ -112,10 +112,11 @@ const styles = StyleSheet.create({
   td: { padding: 6 },
   colNo: { width: 28, textAlign: "center" },
   colName: { flexGrow: 1 },
-  colMaker: { width: 70 },
+  colModel: { width: 58 },
+  colMaker: { width: 58 },
   colQty: { width: 38, textAlign: "center" },
-  colUnit: { width: 80, textAlign: "right" },
-  colAmount: { width: 88, textAlign: "right", fontWeight: 700 },
+  colUnit: { width: 72, textAlign: "right" },
+  colAmount: { width: 80, textAlign: "right", fontWeight: 700 },
   totalsBox: {
     width: 220,
     alignSelf: "flex-end",
@@ -212,6 +213,7 @@ export function PdfQuoteDocument({
           <View style={styles.tableHeader}>
             <Text style={[styles.th, styles.colNo]}>No</Text>
             <Text style={[styles.th, styles.colName]}>품명</Text>
+            <Text style={[styles.th, styles.colModel]}>모델명</Text>
             <Text style={[styles.th, styles.colMaker]}>제조사</Text>
             <Text style={[styles.th, styles.colQty]}>수량</Text>
             <Text style={[styles.th, styles.colUnit]}>단가</Text>
@@ -222,6 +224,9 @@ export function PdfQuoteDocument({
             <View style={styles.tableRow} key={item.id}>
               <Text style={[styles.td, styles.colNo]}>{index + 1}</Text>
               <Text style={[styles.td, styles.colName]}>{item.productName}</Text>
+              <Text style={[styles.td, styles.colModel]}>
+                {item.modelName || "-"}
+              </Text>
               <Text style={[styles.td, styles.colMaker]}>
                 {item.manufacturer || "-"}
               </Text>

@@ -1,6 +1,6 @@
 /**
  * @file components/quote/AiProductFields.tsx
- * @description AI로 채워지는 제조사·스펙·대표 이미지 URL 필드
+ * @description AI로 채워지는 제조사·모델명·스펙·대표 이미지 URL 필드
  */
 
 "use client";
@@ -11,12 +11,17 @@ import { Label } from "@/components/common/Label";
 import type { QuoteItem } from "@/types";
 
 export interface AiProductFieldsProps {
-  draft: Pick<QuoteItem, "manufacturer" | "detailedSpec" | "imageUrl">;
+  draft: Pick<
+    QuoteItem,
+    "manufacturer" | "modelName" | "detailedSpec" | "imageUrl"
+  >;
   isLoading: boolean;
   isEditable: boolean;
   hasAiFilledData: boolean;
   onToggleEditable: () => void;
-  onFieldChange: <K extends "manufacturer" | "detailedSpec" | "imageUrl">(
+  onFieldChange: <
+    K extends "manufacturer" | "modelName" | "detailedSpec" | "imageUrl",
+  >(
     key: K,
     value: QuoteItem[K],
   ) => void;
@@ -25,7 +30,7 @@ export interface AiProductFieldsProps {
 }
 
 /**
- * AI 자동완성 대상 필드 (제조사, 상세 스펙, 대표 이미지 URL)
+ * AI 자동완성 대상 필드 (제조사, 모델명, 상세 스펙, 대표 이미지 URL)
  */
 export function AiProductFields({
   draft,
@@ -43,7 +48,7 @@ export function AiProductFields({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
           {isLoading
-            ? "AI가 제조사·스펙·이미지를 검색하고 있습니다..."
+            ? "AI가 제조사·모델명·스펙·이미지를 검색하고 있습니다..."
             : hasAiFilledData
               ? `AI로 채워진 정보입니다. 이미지 ${selectedImageCount}장 선택됨. 필요 시 수동 수정하세요.`
               : "제품명 입력 후 [AI 검색 및 스펙 완성]을 눌러 주세요."}
@@ -67,6 +72,16 @@ export function AiProductFields({
         value={draft.manufacturer}
         onChange={(e) => onFieldChange("manufacturer", e.target.value)}
         placeholder={isLoading ? "검색 중..." : "AI 검색 후 자동 입력"}
+        readOnly={isLocked}
+        isLoading={isLoading}
+      />
+
+      <Input
+        label="모델명 (공식 모델코드)"
+        name="modelName"
+        value={draft.modelName}
+        onChange={(e) => onFieldChange("modelName", e.target.value)}
+        placeholder={isLoading ? "검색 중..." : "예: A3090, MQKP3KH/A"}
         readOnly={isLocked}
         isLoading={isLoading}
       />

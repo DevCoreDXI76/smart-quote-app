@@ -1,6 +1,6 @@
 /**
  * @file components/quote/QuoteItemForm.tsx
- * @description 견적 품목 입력 폼 — 제품명 + AI 자동완성·이미지·가격 선택
+ * @description 견적 품목 입력 폼 — 제품명 + AI 후보 선택·이미지·가격
  *
  * AI 호출: useAiProductSearch
  * 선택 상태: useAiProductSelection
@@ -15,13 +15,16 @@ import { Input } from "@/components/common/Input";
 import { Toast } from "@/components/common/Toast";
 import { useAiProductSearch } from "@/hooks/useAiProductSearch";
 import { useAiProductSelection } from "@/hooks/useAiProductSelection";
+import { mapCandidateToQuoteDraft } from "@/lib/quote/mapCandidateToQuoteDraft";
 import { createEmptyQuoteItem } from "@/lib/quote/quoteItemFactory";
+import type { AiProductCandidate } from "@/types/aiSearch";
 import type { QuoteItem } from "@/types";
 
 import { AiImageGridPicker } from "./AiImageGridPicker";
 import { AiPriceAnalysisPanel } from "./AiPriceAnalysisPanel";
 import { AiProductFields } from "./AiProductFields";
 import { MajorFeaturesList } from "./MajorFeaturesList";
+import { ProductCandidatePicker } from "./ProductCandidatePicker";
 
 export interface QuoteItemFormProps {
   onAdd: (item: QuoteItem) => void;
@@ -34,7 +37,7 @@ interface FormErrors {
 }
 
 /**
- * 견적 품목 입력 폼 (AI 제품 정보 자동완성 + 이미지·가격 선택)
+ * 견적 품목 입력 폼 (AI 후보 선택 + 이미지·가격 선택)
  */
 export function QuoteItemForm({ onAdd }: QuoteItemFormProps) {
   const [draft, setDraft] = useState<QuoteItem>(() => createEmptyQuoteItem());
@@ -47,8 +50,11 @@ export function QuoteItemForm({ onAdd }: QuoteItemFormProps) {
     useAiProductSearch();
 
   const {
+    selectedCandidateId,
+    selectedCandidate,
     selectedImageUrls,
     selectedPriceAmount,
+    selectCandidate,
     toggleImage,
     clearSelection,
     syncFromSearchResult,
@@ -66,19 +72,31 @@ export function QuoteItemForm({ onAdd }: QuoteItemFormProps) {
     });
   };
 
+  const applyCandidateToDraft = (candidate: AiProductCandidate) => {
+    const mapped = mapCandidateToQuoteDraft(candidate);
+    setDraft((prev) => ({
+      ...prev,
+      ...mapped,
+    }));
+  };
+
   const handleAiSearch = async () => {
+    if (isLoading) return;
+
     const data = await search(draft.productName);
     if (!data) return;
 
-    syncFromSearchResult(data);
-    setDraft((prev) => ({
-      ...prev,
-      manufacturer: data.manufacturer,
-      detailedSpec: data.specifications,
-      majorFeatures: data.majorFeatures,
-    }));
+    const first = syncFromSearchResult(data);
+    if (first) {
+      applyCandidateToDraft(first);
+    }
     setHasAiFilledData(true);
     setIsAiFieldsEditable(false);
+  };
+
+  const handleSelectCandidate = (candidate: AiProductCandidate) => {
+    selectCandidate(candidate);
+    applyCandidateToDraft(candidate);
   };
 
   const handleToggleImage = (url: string) => {
@@ -133,6 +151,7 @@ export function QuoteItemForm({ onAdd }: QuoteItemFormProps) {
       ...draft,
       id: crypto.randomUUID(),
       productName: draft.productName.trim(),
+      modelName: draft.modelName.trim(),
       manufacturer: draft.manufacturer.trim(),
       detailedSpec: draft.detailedSpec.trim(),
       imageUrl: (selectedImageUrls[0] ?? draft.imageUrl).trim(),
@@ -145,6 +164,7 @@ export function QuoteItemForm({ onAdd }: QuoteItemFormProps) {
   };
 
   const canAiSearch = draft.productName.trim().length > 0 && !isLoading;
+  const activeCandidate = selectedCandidate;
 
   return (
     <section className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
@@ -183,9 +203,19 @@ export function QuoteItemForm({ onAdd }: QuoteItemFormProps) {
           </p>
         ) : null}
 
+        {result?.candidates?.length ? (
+          <ProductCandidatePicker
+            candidates={result.candidates}
+            selectedId={selectedCandidateId}
+            onSelect={handleSelectCandidate}
+            disabled={isLoading}
+          />
+        ) : null}
+
         <AiProductFields
           draft={{
             manufacturer: draft.manufacturer,
+            modelName: draft.modelName,
             detailedSpec: draft.detailedSpec,
             imageUrl: draft.imageUrl,
           }}
@@ -197,22 +227,22 @@ export function QuoteItemForm({ onAdd }: QuoteItemFormProps) {
           selectedImageCount={selectedImageUrls.length}
         />
 
-        {result ? (
+        {activeCandidate ? (
           <>
-            <MajorFeaturesList features={result.majorFeatures} />
+            <MajorFeaturesList features={activeCandidate.majorFeatures} />
             <AiImageGridPicker
-              imageUrls={result.imageUrls}
+              imageUrls={activeCandidate.imageUrls}
               selectedUrls={selectedImageUrls}
               onToggle={handleToggleImage}
               disabled={isLoading}
             />
             <AiPriceAnalysisPanel
-              priceTrend={result.priceTrend}
-              priceSources={result.priceSources}
+              priceTrend={activeCandidate.priceTrend}
+              priceSources={activeCandidate.priceSources}
               onSelectPrice={handleSelectPrice}
               selectedAmount={selectedPriceAmount}
-              currencyConversion={result.currencyConversion}
-              originalPriceInUsd={result.originalPriceInUsd}
+              currencyConversion={activeCandidate.currencyConversion}
+              originalPriceInUsd={activeCandidate.originalPriceInUsd}
             />
           </>
         ) : null}

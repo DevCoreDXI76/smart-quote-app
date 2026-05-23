@@ -30,6 +30,14 @@ export function sanitizeApiErrorMessage(err: unknown): string {
     return "API 호출 한도에 도달했습니다. 잠시 후 다시 시도해 주세요.";
   }
 
+  if (/aborted/i.test(raw)) {
+    return "검색 요청이 중단되었습니다. 시간이 부족하면 AI_SEARCH_TIMEOUT_MS 값을 늘린 뒤 서버를 재시작해 주세요.";
+  }
+
+  if (raw.includes("ZodError") || raw.includes("candidates")) {
+    return "AI 응답 형식이 올바르지 않습니다. 다시 검색해 주세요.";
+  }
+
   if (raw.includes("Serper") || raw.toLowerCase().includes("serper")) {
     return `검색 API(Serper) 오류: SERPER_API_KEY를 확인해 주세요.`;
   }

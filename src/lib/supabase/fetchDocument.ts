@@ -33,7 +33,7 @@ export async function fetchDocumentById(
   const { data: products, error: prodError } = await supabase
     .from("products")
     .select(
-      "id, document_id, product_name, manufacturer, detailed_spec, image_url, image_urls, major_features, quantity, unit_price, sort_order",
+      "id, document_id, product_name, model_name, manufacturer, detailed_spec, image_url, image_urls, major_features, quantity, unit_price, sort_order",
     )
     .eq("document_id", documentId)
     .order("sort_order", { ascending: true });

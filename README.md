@@ -101,7 +101,7 @@ smart-quote-app/
 | `OPENAI_MODEL` | 선택 | 기본 `gpt-4o-mini` |
 | `ANTHROPIC_API_KEY` | Claude 사용 시 | [Anthropic Console](https://console.anthropic.com/) |
 | `ANTHROPIC_MODEL` | 선택 | 기본 `claude-3-5-haiku-20241022` |
-| `AI_SEARCH_TIMEOUT_MS` | 선택 | 기본 `25000` (ms) |
+| `AI_SEARCH_TIMEOUT_MS` | 선택 | 기본 `90000` (ms, 후보 3~5건 생성용) |
 | `USD_KRW_FALLBACK_RATE` | 선택 | 환율 API 실패 시 1 USD당 KRW (기본 `1400`) |
 
 키가 없으면 API는 **503**과 한글 안내 메시지를 반환합니다.

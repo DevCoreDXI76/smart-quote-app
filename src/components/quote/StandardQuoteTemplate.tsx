@@ -122,7 +122,10 @@ export function StandardQuoteTemplate({
             <th>
               품명
             </th>
-            <th style={{ width: "24mm" }}>
+            <th style={{ width: "22mm" }}>
+              모델명
+            </th>
+            <th style={{ width: "20mm" }}>
               제조사
             </th>
             <th className="sqCenter" style={{ width: "14mm" }}>
@@ -143,6 +146,7 @@ export function StandardQuoteTemplate({
                 {index + 1}
               </td>
               <td>{item.productName}</td>
+              <td>{item.modelName || "-"}</td>
               <td>{item.manufacturer || "-"}</td>
               <td className="sqCenter">
                 {item.quantity}

@@ -1,6 +1,9 @@
 /**
  * @file components/auth/AuthModal.tsx
  * @description 미로그인 시 저장 등에서 띄우는 로그인/회원가입 모달
+ *
+ * 저장 버튼 클릭 시 pending_quote_data가 이미 sessionStorage에 백업된 상태입니다.
+ * 로그인 페이지 이동 링크: /login?redirect=/
  */
 
 "use client";
@@ -30,11 +33,11 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
       title={mode === "login" ? "로그인" : "회원가입"}
       footer={
         <Link
-          href={`/${mode === "login" ? "login" : "signup"}`}
+          href="/login?redirect=/"
           className="text-sm text-zinc-600 underline dark:text-zinc-400"
           onClick={onClose}
         >
-          로그인 페이지로 이동 →
+          로그인 페이지에서 계속하기 →
         </Link>
       }
     >
@@ -64,7 +67,8 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
           </button>
         </div>
         <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">
-          문서를 저장하려면 로그인이 필요합니다.
+          문서를 저장하려면 로그인이 필요합니다. 작성 중인 견적은 브라우저에
+          임시 저장되어 있으며, 로그인 후 자동으로 복구됩니다.
         </p>
         <AuthForm
           mode={mode}

@@ -75,6 +75,11 @@ export function QuoteItemList({ items, lineTotals, onRemove }: QuoteItemListProp
                   {item.manufacturer}
                 </p>
               ) : null}
+              {item.modelName ? (
+                <Badge asSpan variant="outline" className="mt-1 text-[10px]">
+                  모델명: {item.modelName}
+                </Badge>
+              ) : null}
               {item.majorFeatures.length > 0 ? (
                 <div className="mt-1 flex flex-wrap gap-1">
                   {item.majorFeatures.slice(0, 3).map((f) => (

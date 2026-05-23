@@ -75,9 +75,18 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result);
   } catch (err) {
-    if (err instanceof Error && err.name === "AbortError") {
+    const isTimeoutAbort =
+      err instanceof Error &&
+      (err.name === "AbortError" ||
+        /aborted/i.test(err.message) ||
+        err.message.includes("timeout"));
+
+    if (isTimeoutAbort) {
       return NextResponse.json(
-        { error: "검색 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요." },
+        {
+          error:
+            "검색 시간이 초과되었습니다. 후보 3~5건 생성에 시간이 걸릴 수 있습니다. 잠시 후 다시 시도하거나 .env.local의 AI_SEARCH_TIMEOUT_MS를 늘려 주세요.",
+        },
         { status: 504 },
       );
     }

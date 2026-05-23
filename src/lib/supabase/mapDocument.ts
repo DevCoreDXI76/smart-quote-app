@@ -20,6 +20,7 @@ export interface DbProductRow {
   id: string;
   document_id: string;
   product_name: string;
+  model_name: string;
   manufacturer: string;
   detailed_spec: string;
   image_url: string;
@@ -33,6 +34,7 @@ export interface DbProductRow {
 /** RPC save_document_with_products 에 전달할 품목 JSON */
 export interface DbProductInsertPayload {
   product_name: string;
+  model_name: string;
   manufacturer: string;
   detailed_spec: string;
   image_url: string;
@@ -51,6 +53,7 @@ export function quoteItemsToDbPayload(
 ): DbProductInsertPayload[] {
   return items.map((item, index) => ({
     product_name: item.productName,
+    model_name: item.modelName,
     manufacturer: item.manufacturer,
     detailed_spec: item.detailedSpec,
     image_url: item.imageUrl,
@@ -74,6 +77,7 @@ export function dbProductToQuoteItem(row: DbProductRow): QuoteItem {
   return {
     id: row.id,
     productName: row.product_name,
+    modelName: row.model_name ?? "",
     manufacturer: row.manufacturer,
     detailedSpec: row.detailed_spec,
     imageUrl: row.image_url || imageUrls[0] || "",

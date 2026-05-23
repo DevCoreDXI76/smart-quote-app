@@ -66,7 +66,7 @@ async function refineWithAnthropic(
   const message = await client.messages.create(
     {
       model: env.llmModel,
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: buildProductSearchSystemPrompt(),
       messages: [
         {

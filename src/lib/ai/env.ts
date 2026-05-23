@@ -64,7 +64,8 @@ export function assertAiSearchEnv(): AiSearchEnvStatus {
     }
   }
 
-  const timeoutMs = Number(process.env.AI_SEARCH_TIMEOUT_MS) || 25_000;
+  /** 후보 3~5건 JSON 생성은 25초보다 오래 걸릴 수 있어 기본 90초 */
+  const timeoutMs = Number(process.env.AI_SEARCH_TIMEOUT_MS) || 90_000;
 
   return {
     serperApiKey,

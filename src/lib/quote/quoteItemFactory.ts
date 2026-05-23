@@ -12,6 +12,7 @@ export function createEmptyQuoteItem(): QuoteItem {
   return {
     id: crypto.randomUUID(),
     productName: "",
+    modelName: "",
     manufacturer: "",
     detailedSpec: "",
     imageUrl: "",

@@ -1,6 +1,9 @@
 /**
  * @file components/quote/DocumentSavePanel.tsx
  * @description 견적서 저장(제목, 공개 여부, Supabase RPC)
+ *
+ * 비로그인 저장 시 sessionStorage(pending_quote_data)에 draft 백업 후
+ * AuthModal 또는 로그인 페이지로 안내합니다.
  */
 
 "use client";
@@ -12,6 +15,10 @@ import { Button } from "@/components/common/Button";
 import { Input } from "@/components/common/Input";
 import { useAuth } from "@/hooks/useAuth";
 import { useSaveDocument } from "@/hooks/useSaveDocument";
+import {
+  clearPendingQuoteDraft,
+  savePendingQuoteDraft,
+} from "@/lib/quote/pendingQuoteStorage";
 import type { QuoteItem } from "@/types";
 
 export interface DocumentSavePanelProps {
@@ -40,6 +47,7 @@ export function DocumentSavePanel({
   const { saveDocument, isSaving, error, clearError } = useSaveDocument();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [pendingHint, setPendingHint] = useState<string | null>(null);
 
   const hasItems = items.length > 0;
   const saveLabel = loadedDocumentId ? "수정 저장" : "견적서 저장하기";
@@ -57,6 +65,7 @@ export function DocumentSavePanel({
       documentId: loadedDocumentId,
     });
 
+    clearPendingQuoteDraft();
     onSaved(id);
     setSuccessMessage(
       loadedDocumentId
@@ -75,10 +84,29 @@ export function DocumentSavePanel({
 
   const handleSaveClick = () => {
     if (!hasItems) return;
+
     if (!user) {
+      try {
+        savePendingQuoteDraft({
+          items,
+          title,
+          isPublic,
+          loadedDocumentId,
+        });
+        setPendingHint(
+          "작성 중인 견적을 브라우저에 임시 저장했습니다. 로그인 후 이어서 저장할 수 있습니다.",
+        );
+      } catch (err) {
+        setPendingHint(
+          err instanceof Error
+            ? err.message
+            : "임시 저장에 실패했습니다.",
+        );
+      }
       setAuthModalOpen(true);
       return;
     }
+
     void runSave();
   };
 
@@ -118,6 +146,11 @@ export function DocumentSavePanel({
         </label>
       </div>
 
+      {pendingHint ? (
+        <p className="mb-4 text-sm text-blue-700 dark:text-blue-400">
+          {pendingHint}
+        </p>
+      ) : null}
       {error ? (
         <p className="mb-4 text-sm text-red-600 dark:text-red-400" role="alert">
           {error}

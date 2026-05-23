@@ -10,6 +10,7 @@
 export type {
   AiPriceSource,
   AiPriceTrend,
+  AiProductCandidate,
   AiProductSearchErrorResponse,
   AiProductSearchRequest,
   AiProductSearchResult,
@@ -21,8 +22,10 @@ export type {
 export interface QuoteItem {
   /** 품목 고유 ID */
   id: string;
-  /** 제품명 */
+  /** 제품명 (세부 옵션 포함 가능) */
   productName: string;
+  /** 제조사 공식 모델명/모델코드 (예: A3090) */
+  modelName: string;
   /** 제조사 */
   manufacturer: string;
   /** 상세 스펙 (AI 검색 결과 또는 수동 입력) */
@@ -56,3 +59,6 @@ export interface DocumentMaster {
   /** 포함 품목 목록 */
   items: QuoteItem[];
 }
+
+/** @deprecated AiProductCandidate 사용 권장 — 하위 호환 alias */
+export type ProductCandidate = import("./aiSearch").AiProductCandidate;
