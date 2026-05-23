@@ -518,5 +518,6 @@ grant execute on function public.admin_delete_document(uuid) to authenticated;
 -- 기존 DB 마이그레이션 (이미 스키마를 실행한 경우 SQL Editor에서 1회 실행)
 -- -----------------------------------------------------------------------------
 -- alter table public.products add column if not exists model_name text not null default '';
+-- (구 DB: 위 한 줄만 SQL Editor에서 1회 실행하면 model_name·저장 RPC와 완전히 동기화됩니다)
 -- alter table public.users add column if not exists role text not null default 'user' check (role in ('user', 'admin'));
 -- (위 7번 섹션 전체를 마이그레이션으로 실행)

@@ -6,6 +6,9 @@
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import {
   formatAuthorLabel,
+  isMissingModelNameColumnError,
+  PRODUCT_SELECT_FULL,
+  PRODUCT_SELECT_LEGACY,
   rowsToDocumentMaster,
   type DbDocumentRow,
   type DbProductRow,
@@ -30,13 +33,19 @@ export async function fetchDocumentById(
   if (docError) throw new Error(docError.message);
   if (!doc) return null;
 
-  const { data: products, error: prodError } = await supabase
+  let { data: products, error: prodError } = await supabase
     .from("products")
-    .select(
-      "id, document_id, product_name, model_name, manufacturer, detailed_spec, image_url, image_urls, major_features, quantity, unit_price, sort_order",
-    )
+    .select(PRODUCT_SELECT_FULL)
     .eq("document_id", documentId)
     .order("sort_order", { ascending: true });
+
+  if (prodError && isMissingModelNameColumnError(prodError)) {
+    ({ data: products, error: prodError } = await supabase
+      .from("products")
+      .select(PRODUCT_SELECT_LEGACY)
+      .eq("document_id", documentId)
+      .order("sort_order", { ascending: true }));
+  }
 
   if (prodError) throw new Error(prodError.message);
 

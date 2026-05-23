@@ -20,7 +20,8 @@ export interface DbProductRow {
   id: string;
   document_id: string;
   product_name: string;
-  model_name: string;
+  /** model_name 컬럼 마이그레이션 전 DB에서는 없을 수 있음 */
+  model_name?: string;
   manufacturer: string;
   detailed_spec: string;
   image_url: string;
@@ -29,6 +30,21 @@ export interface DbProductRow {
   quantity: number;
   unit_price: number;
   sort_order: number;
+}
+
+/** products 조회 — model_name 포함 (신규 스키마) */
+export const PRODUCT_SELECT_FULL =
+  "id, document_id, product_name, model_name, manufacturer, detailed_spec, image_url, image_urls, major_features, quantity, unit_price, sort_order";
+
+/** products 조회 — model_name 제외 (구 스키마 호환) */
+export const PRODUCT_SELECT_LEGACY =
+  "id, document_id, product_name, manufacturer, detailed_spec, image_url, image_urls, major_features, quantity, unit_price, sort_order";
+
+/** model_name 컬럼 미적용 DB 오류 여부 */
+export function isMissingModelNameColumnError(error: {
+  message?: string;
+}): boolean {
+  return /model_name/.test(error.message ?? "");
 }
 
 /** RPC save_document_with_products 에 전달할 품목 JSON */

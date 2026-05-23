@@ -6,6 +6,9 @@
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import {
   dbProductToQuoteItem,
+  isMissingModelNameColumnError,
+  PRODUCT_SELECT_FULL,
+  PRODUCT_SELECT_LEGACY,
   type DbProductRow,
 } from "@/lib/supabase/mapDocument";
 import { calculateQuoteTotals } from "@/lib/calculations/quoteTotals";
@@ -21,13 +24,19 @@ export async function fetchProductsGroupedByDocument(
   if (!documentIds.length) return map;
 
   const supabase = getSupabaseClient();
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("products")
-    .select(
-      "id, document_id, product_name, model_name, manufacturer, detailed_spec, image_url, image_urls, major_features, quantity, unit_price, sort_order",
-    )
+    .select(PRODUCT_SELECT_FULL)
     .in("document_id", documentIds)
     .order("sort_order", { ascending: true });
+
+  if (error && isMissingModelNameColumnError(error)) {
+    ({ data, error } = await supabase
+      .from("products")
+      .select(PRODUCT_SELECT_LEGACY)
+      .in("document_id", documentIds)
+      .order("sort_order", { ascending: true }));
+  }
 
   if (error) throw new Error(error.message);
 
