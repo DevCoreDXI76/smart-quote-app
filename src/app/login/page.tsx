@@ -25,6 +25,14 @@ function LoginContent() {
         Smart Quote에 로그인하여 견적서를 저장하고 관리하세요.
       </p>
       <AuthForm mode="login" onSuccess={() => router.push(redirect)} />
+      <p className="mt-2 text-right text-sm">
+        <Link
+          href="/forgot-password"
+          className="text-zinc-600 underline decoration-zinc-300 underline-offset-2 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+        >
+          비밀번호를 잊으셨나요?
+        </Link>
+      </p>
       <p className="mt-6 text-center text-sm text-zinc-600 dark:text-zinc-400">
         계정이 없으신가요?{" "}
         <Link href="/signup" className="font-medium underline">
