@@ -4,7 +4,10 @@
  */
 
 import { getSupabaseClient } from "@/lib/supabaseClient";
-import { quoteItemsToDbPayload } from "@/lib/supabase/mapDocument";
+import {
+  isMissingModelNameColumnError,
+  quoteItemsToDbPayload,
+} from "@/lib/supabase/mapDocument";
 import type { QuoteItem } from "@/types";
 
 export interface SaveDocumentParams {
@@ -33,6 +36,11 @@ export async function saveDocumentWithProducts(
   });
 
   if (error) {
+    if (isMissingModelNameColumnError(error)) {
+      throw new Error(
+        "DB에 products.model_name 컬럼이 없습니다. Supabase SQL Editor에서 supabase-migrations/001_add_model_name.sql 을 실행한 뒤 save_document_with_products RPC를 갱신해 주세요. (임시로 image_urls 메타에 모델명이 저장될 수 있습니다.)",
+      );
+    }
     throw new Error(error.message || "문서 저장에 실패했습니다.");
   }
 

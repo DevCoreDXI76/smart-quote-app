@@ -4,6 +4,11 @@
  */
 
 import type { DocumentMaster, QuoteItem } from "@/types";
+import {
+  decodeModelNameFromImageUrls,
+  encodeModelNameInImageUrls,
+  isModelNameMetaUrl,
+} from "@/lib/quote/modelNameMeta";
 
 /** Supabase documents 테이블 행 */
 export interface DbDocumentRow {
@@ -67,33 +72,45 @@ export interface DbProductInsertPayload {
 export function quoteItemsToDbPayload(
   items: QuoteItem[],
 ): DbProductInsertPayload[] {
-  return items.map((item, index) => ({
-    product_name: item.productName,
-    model_name: item.modelName,
-    manufacturer: item.manufacturer,
-    detailed_spec: item.detailedSpec,
-    image_url: item.imageUrl,
-    image_urls: item.imageUrls ?? [],
-    major_features: item.majorFeatures ?? [],
-    quantity: item.quantity,
-    unit_price: Math.round(item.unitPrice),
-    sort_order: index,
-  }));
+  return items.map((item, index) => {
+    const imageUrls = encodeModelNameInImageUrls(
+      item.modelName,
+      item.imageUrls ?? [],
+    );
+    const displayUrls = imageUrls.filter((u) => !isModelNameMetaUrl(u));
+
+    return {
+      product_name: item.productName,
+      model_name: item.modelName.trim(),
+      manufacturer: item.manufacturer,
+      detailed_spec: item.detailedSpec,
+      image_url: (item.imageUrl || displayUrls[0] || "").trim(),
+      image_urls: imageUrls,
+      major_features: item.majorFeatures ?? [],
+      quantity: item.quantity,
+      unit_price: Math.round(item.unitPrice),
+      sort_order: index,
+    };
+  });
 }
 
 /**
  * products 행을 QuoteItem으로 변환합니다.
  */
 export function dbProductToQuoteItem(row: DbProductRow): QuoteItem {
-  const imageUrls = Array.isArray(row.image_urls) ? row.image_urls : [];
+  const rawUrls = Array.isArray(row.image_urls) ? row.image_urls : [];
+  const { modelName: modelFromMeta, imageUrls } =
+    decodeModelNameFromImageUrls(rawUrls);
   const majorFeatures = Array.isArray(row.major_features)
     ? row.major_features
     : [];
 
+  const modelName = (row.model_name?.trim() || modelFromMeta).trim();
+
   return {
     id: row.id,
     productName: row.product_name,
-    modelName: row.model_name ?? "",
+    modelName,
     manufacturer: row.manufacturer,
     detailedSpec: row.detailed_spec,
     imageUrl: row.image_url || imageUrls[0] || "",

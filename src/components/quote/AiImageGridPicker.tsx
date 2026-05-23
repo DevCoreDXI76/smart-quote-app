@@ -8,6 +8,7 @@
 import Image from "next/image";
 
 import { MAX_SELECTABLE_IMAGES } from "@/lib/ai/constants";
+import { isModelNameMetaUrl } from "@/lib/quote/modelNameMeta";
 
 export interface AiImageGridPickerProps {
   /** AI가 반환한 후보 이미지 URL (예: 10개) */
@@ -30,7 +31,8 @@ export function AiImageGridPicker({
   maxSelection = MAX_SELECTABLE_IMAGES,
   disabled = false,
 }: AiImageGridPickerProps) {
-  if (imageUrls.length === 0) return null;
+  const displayUrls = imageUrls.filter((u) => !isModelNameMetaUrl(u));
+  if (displayUrls.length === 0) return null;
 
   return (
     <section className="flex flex-col gap-3">
@@ -43,7 +45,7 @@ export function AiImageGridPicker({
         </p>
       </div>
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-        {imageUrls.map((url, index) => {
+        {displayUrls.map((url, index) => {
           const isSelected = selectedUrls.includes(url);
           return (
             <li key={`${url}-${index}`}>
