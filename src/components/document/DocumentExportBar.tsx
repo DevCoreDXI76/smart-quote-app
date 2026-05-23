@@ -10,6 +10,7 @@ import { useCallback, useState } from "react";
 import { Button } from "@/components/common/Button";
 import { PdfQuoteDocument } from "@/components/quote/PdfQuoteDocument";
 import { PdfPurchaseSpecDocument } from "@/components/spec/PdfPurchaseSpecDocument";
+import { useExcelExport } from "@/hooks/useExcelExport";
 import { useReactPdfExport } from "@/hooks/useReactPdfExport";
 import {
   buildDocumentMeta,
@@ -39,14 +40,23 @@ export function DocumentExportBar({ items, totals }: DocumentExportBarProps) {
     null,
   );
   const { exportPdf, isExporting, error, clearError } = useReactPdfExport();
+  const {
+    exportExcelQuote,
+    isExporting: isExcelExporting,
+    error: excelError,
+    clearError: clearExcelError,
+  } = useExcelExport();
 
   const hasItems = items.length > 0;
+  const isBusy = isExporting || isExcelExporting;
+  const displayError = error ?? excelError;
 
   const runOffscreenExport = useCallback(
     async (target: "quote" | "spec") => {
       if (!hasItems) return;
 
       clearError();
+      clearExcelError();
       setDownloadTarget(target);
 
       const meta = buildDocumentMeta();
@@ -75,8 +85,22 @@ export function DocumentExportBar({ items, totals }: DocumentExportBarProps) {
       });
       setDownloadTarget(null);
     },
-    [clearError, exportPdf, hasItems, items, totals],
+    [clearError, clearExcelError, exportPdf, hasItems, items, totals],
   );
+
+  const runExcelExport = useCallback(async () => {
+    if (!hasItems) return;
+
+    clearError();
+    clearExcelError();
+
+    const meta = buildDocumentMeta();
+    const dateKey = formatFilenameDate(meta.issuedAt);
+    await exportExcelQuote({
+      items,
+      filename: `견적서_${dateKey}.xlsx`,
+    });
+  }, [exportExcelQuote, clearError, clearExcelError, hasItems, items]);
 
   return (
     <section
@@ -87,7 +111,7 @@ export function DocumentExportBar({ items, totals }: DocumentExportBarProps) {
         문서 출력
       </h2>
       <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">
-        품목을 추가한 뒤 견적서·구매사양서를 미리보기하거나 PDF로 저장할 수
+        품목을 추가한 뒤 견적서·구매사양서를 미리보기하거나 PDF·엑셀로 저장할 수
         있습니다.
       </p>
 
@@ -97,23 +121,23 @@ export function DocumentExportBar({ items, totals }: DocumentExportBarProps) {
         </p>
       ) : null}
 
-      {error ? (
+      {displayError ? (
         <p className="mb-4 text-sm text-red-600 dark:text-red-400" role="alert">
-          {error}
+          {displayError}
         </p>
       ) : null}
 
       <div className="flex flex-wrap gap-3">
         <Button
           variant="secondary"
-          disabled={!hasItems || isExporting}
+          disabled={!hasItems || isBusy}
           onClick={() => setPreviewType("quote")}
         >
           견적서 보기
         </Button>
         <Button
           variant="primary"
-          disabled={!hasItems || isExporting}
+          disabled={!hasItems || isBusy}
           isLoading={isExporting && downloadTarget === "quote"}
           loadingLabel="PDF 생성 중..."
           onClick={() => runOffscreenExport("quote")}
@@ -122,14 +146,24 @@ export function DocumentExportBar({ items, totals }: DocumentExportBarProps) {
         </Button>
         <Button
           variant="secondary"
-          disabled={!hasItems || isExporting}
+          disabled={!hasItems || isBusy}
+          isLoading={isExcelExporting}
+          loadingLabel="엑셀 생성 중..."
+          className="border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 dark:border-emerald-600 dark:bg-emerald-600 dark:text-white dark:hover:bg-emerald-700"
+          onClick={() => void runExcelExport()}
+        >
+          엑셀 파일 다운로드 (.xlsx)
+        </Button>
+        <Button
+          variant="secondary"
+          disabled={!hasItems || isBusy}
           onClick={() => setPreviewType("spec")}
         >
           구매사양서 보기
         </Button>
         <Button
           variant="primary"
-          disabled={!hasItems || isExporting}
+          disabled={!hasItems || isBusy}
           isLoading={isExporting && downloadTarget === "spec"}
           loadingLabel="PDF 생성 중..."
           onClick={() => runOffscreenExport("spec")}

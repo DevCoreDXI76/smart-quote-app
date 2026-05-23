@@ -33,18 +33,26 @@ export async function fetchDocumentById(
   if (docError) throw new Error(docError.message);
   if (!doc) return null;
 
-  let { data: products, error: prodError } = await supabase
+  let products: DbProductRow[] | null = null;
+  let prodError: { message: string } | null = null;
+
+  const fullResult = await supabase
     .from("products")
     .select(PRODUCT_SELECT_FULL)
     .eq("document_id", documentId)
     .order("sort_order", { ascending: true });
 
+  products = (fullResult.data ?? null) as DbProductRow[] | null;
+  prodError = fullResult.error;
+
   if (prodError && isMissingModelNameColumnError(prodError)) {
-    ({ data: products, error: prodError } = await supabase
+    const legacyResult = await supabase
       .from("products")
       .select(PRODUCT_SELECT_LEGACY)
       .eq("document_id", documentId)
-      .order("sort_order", { ascending: true }));
+      .order("sort_order", { ascending: true });
+    products = (legacyResult.data ?? null) as DbProductRow[] | null;
+    prodError = legacyResult.error;
   }
 
   if (prodError) throw new Error(prodError.message);

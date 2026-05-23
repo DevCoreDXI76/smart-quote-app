@@ -24,23 +24,31 @@ export async function fetchProductsGroupedByDocument(
   if (!documentIds.length) return map;
 
   const supabase = getSupabaseClient();
-  let { data, error } = await supabase
+  let data: DbProductRow[] | null = null;
+  let error: { message: string } | null = null;
+
+  const fullResult = await supabase
     .from("products")
     .select(PRODUCT_SELECT_FULL)
     .in("document_id", documentIds)
     .order("sort_order", { ascending: true });
 
+  data = (fullResult.data ?? null) as DbProductRow[] | null;
+  error = fullResult.error;
+
   if (error && isMissingModelNameColumnError(error)) {
-    ({ data, error } = await supabase
+    const legacyResult = await supabase
       .from("products")
       .select(PRODUCT_SELECT_LEGACY)
       .in("document_id", documentIds)
-      .order("sort_order", { ascending: true }));
+      .order("sort_order", { ascending: true });
+    data = (legacyResult.data ?? null) as DbProductRow[] | null;
+    error = legacyResult.error;
   }
 
   if (error) throw new Error(error.message);
 
-  for (const row of (data ?? []) as DbProductRow[]) {
+  for (const row of data ?? []) {
     const list = map.get(row.document_id) ?? [];
     list.push(dbProductToQuoteItem(row));
     map.set(row.document_id, list);
